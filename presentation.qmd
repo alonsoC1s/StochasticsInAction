@@ -1,0 +1,257 @@
+---
+title: Reinforcement Learning via Linear Programming
+lang: en-us
+author: Alonso Martínez Cisneros
+institute: Freie Universität Berlin
+execute: 
+  echo: false
+  warning: false
+format:
+  revealjs:
+    output-file: index.html
+    theme: nord_theme.scss
+    logo: img/logo_ITAM.png
+    incremental: true
+    revealjs-plugins:
+      - presentextras/fullscreen
+ascii: true
+navigation-mode: vertical
+bibliography: BachelorsThesis.bib
+---
+
+:::{.hidden}
+```{julia}
+using Plots
+using Random
+
+Random.seed!(1)
+include("../codigo/nord.jl")
+theme(:ggnord)
+plotly()
+```
+$$
+\newcommand{\R}{\mathbb{R}}
+$$
+:::
+
+## Miniopoly
+
+Aqui diagramitas
+
+### The main characters
+
+- Estados
+- Políticas
+- Funciones estado-valor
+
+. . .
+
+The main characters of the story are the state-value and action-value
+functions. They relate the current situation of the player to the best possible
+outcome.
+
+$$
+\begin{align*}
+v_{\pi} (s) &:= \mathbb{E}_{\pi} \left[\sum_{k=0}^{\infty} \gamma^{k}
+R_{t+k+1} \, \middle\vert \, S_{t} = s\right], \\
+q_\pi (s, a) &:= \mathbb{E}_{\pi} \left[ \sum_{k=0}^{\infty} \gamma^{k}
+R_{t+k+1} \,\middle\vert\, S_t = s, A_t = a \right].
+\end{align*}
+$$
+
+:::{.notes}
+- Por qué nos interesan?
+:::
+
+----------
+
+- We will achieve the best playing strategy by maximzing $v$.
+- The optimal value function will be denoted $v_{*}(s)$.
+
+. . .
+
+$$
+v_{*}(s) = \max_{a} q_\pi (s, a)
+$$
+
+- Existance and uniqueness were proved by @bellman1957.
+
+# Optimization is just a search problem
+
+## {fullscreen=true}
+
+```{julia}
+#| fig-align: center
+#| output-location: slide
+Plots.surface(-10:10, -10:10, (x, y) -> x^2 - y^2, colorbar=:none)
+```
+
+:::{.notes}
+- Value functions are more complex than this example, and hard to visualize
+- The space-action space which is the domain of $v$ is hard to visualize.
+:::
+
+## {fullscreen=true}
+
+```{julia}
+paraboloid(x, y) = x^2 - y^2
+Plots.surface(-10:10, -10:10, paraboloid, colorbar=:none, camera=(45,30))
+scatter!([(5, 0, 0), (0, 5, 0)], markersize=2)
+```
+
+:::{.notes}
+- The function of interest exists only on states, not on a continuous, connected domain
+:::
+
+## {fullscreen=true}
+
+We sample this proxy function in the few spots we chose
+
+```{julia}
+Plots.surface(-10:10, -10:10, paraboloid, colorbar=:none, camera=(45,30))
+points_on_surf = [(p[1], p[2], paraboloid(p[1], p[2])) for p in [(5, 0), (0, 5)]]
+scatter!(
+    points_on_surf,
+    markersize=2
+)
+```
+
+## {fullscreen=true}
+
+By representing the function with two numbers, we simplify a very complex idea.
+
+```{julia}
+scatter(
+    [(points_on_surf[1][3], points_on_surf[2][3])],
+    xlim = (0,50),
+    ylim = (-50, 0),
+    legend = :none,
+)
+```
+
+:::{.notes}
+- This is the same principle behind the framing as a Linear Programming Problem.
+:::
+
+## Quién dice que lo que buscamos existe?
+
+Las ecuaciones de optimalidad de Bellman
+
+$$
+v_\pi (s) = \sum_{a} \pi(a \mid s) \left[ r(s,a) + \gamma \sum_{s'} p(s' \mid s, a) v_\pi (s') \right].
+$$
+
+:::{.notes}
+- Notar la recurrencia
+- Aseguran también la unicidad
+- Esto es en realidad una ecuación para cada estado
+- Pensamos en la función como un vector para hablar de todas las ecuaciones a la vez
+:::
+
+-----------
+
+El gran regalo: Operador de Bellman
+
+$$
+T_\pi \vec{v} = \vec{R}_\pi + \gamma \vec{P}_\pi \vec{v}.
+$$
+
+- Nos permite pensar en todas las ecuaciones al mismo tiempo
+- Lo podemos pensar como una cosa que transforma vectores
+
+:::{.notes}
+- Tiene toda la cara de cómo definimos $v$ desde el inicio, pero para vectores
+- Es un sistema lineal pero es enooorme
+:::
+
+--------------
+
+- El operador de Bellman tiene propiedades muy bonitas
+    - Es una contracción!
+    - Un teorema de Banach
+
+. . .
+
+:::{.callout-tip}
+Si sabemos hacia dónde se están encogiendo los puntos, no tenemos que explorar
+todo el espacio. Podemos establecer fronteras dentro de las cuales **tiene** que
+estar la solución
+:::
+
+----------------
+
+```{julia}
+#| fig-align: center
+using Polyhedra
+h = HalfSpace([1, 0], 10) ∩
+    HalfSpace([0, 1], 10) ∩
+    HalfSpace([1, 1], 13) ∩
+    HalfSpace([-1, 0], 0) ∩
+    HalfSpace([0, -1], 0)
+
+p = polyhedron(h)
+
+plot(p, ratio=:equal,
+    xlabel = "Estado 1",
+    ylabel = "Estado 2",
+    xlims = (-1, 11),
+    ylims = (-1, 11),
+    alpha = 0.6,
+)
+```
+
+:::{.notes}
+- Por qué son bonitos los polítopos
+:::
+
+
+--------
+
+- Si aseguramos que la función objetivo es lineal, las soluciones están en las esquinas del polítopo!
+
+. . .
+
+:::{.callout-tip}
+Es mucho más rápido explorar solo las esquinas que todo el interior de un políedro
+:::
+
+- Con todo y estas reducciones, la dimensión del espacio sigue siendo demasiado
+  grande para explorar
+
+## Usando una aproximación lineal
+
+- Reemplazamos la función de interés con una aproximación "de baja resolución"
+- Escogemos una cantidad "pequeña" de dimensiones para explorar, no todas
+- Si sabemos escoger, podemos encontrar la solución exacta
+- Aún si no logramos abarcar la solución, @farias2004constraint pone límites al error
+
+# La conexión prometida
+
+- En qué se parecen el Aprendizaje Supervisado y por refuerzo?
+- @xiong ya habían explorado usar RL, pero con redes neuronales (RLBDT)
+- (RLBDT) obtiene resultados muy prometedores en calidad de ajuste y tiempo usado.
+
+:::{.notes}
+- Una de las ideas semi-originales de este trabajo
+:::
+
+---------
+
+Convertimos este algoritmo
+
+![](img/alg_7-1.png)
+
+en algo que un máquina haría sola
+
+# Conclusiones y trabajo a futuro
+
+- Propuse Approximate Linear Programming Based Decission Trees (ALPBDT) como
+  técnica "nueva"
+- No hay implementación completa (aún)
+- Técnicas como XGBoost @XGBoost dominan el modelado predictivo, vale la pena
+  investigar en árboles.
+
+# References
+
+::: {#refs}
+:::

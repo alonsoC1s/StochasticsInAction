@@ -1,0 +1,7 @@
+[deps]
+CyclicStaticVectors = "8f5afe43-6ecb-43f0-ad62-c8c83582c286"
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+GLMakie = "e9467ef8-e4e7-5192-8a1a-b1aee30e663a"
+GLPK = "60bf3e95-4087-53dc-ae20-288a0d20c6a6"
+JuMP = "4076af6c-e467-56ae-b986-b466b2749572"
+ProgressMeter = "92933f4c-e287-5a05-a399-4b506db050ca"

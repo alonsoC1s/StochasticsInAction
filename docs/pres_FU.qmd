@@ -1,0 +1,195 @@
+---
+title: Reinforcement Learning via Linear Programming
+lang: en-us
+author: Alonso Martínez Cisneros
+institute: Freie Universität Berlin
+execute: 
+  echo: false
+  warning: false
+format:
+  revealjs:
+    output-file: index.html
+    incremental: true
+ascii: true
+navigation-mode: vertical
+bibliography: BachelorsThesis.bib
+jupyter: julia-1.9
+---
+
+
+## Miniopoly
+
+![Miniopoly Board](img/board.svg)
+
+-----
+
+![Transitions](img/transicion-markov-three.svg)
+
+### The main characters
+
+- States are not only the positions of the players on the board, but the amount
+  of money they have
+
+- The action set is {Buy, Pass, Buy Hotel}
+
+- Policies. What is the best playing strategy?
+
+. . .
+
+We know that the Bellman optimality equation gives us the following recursive
+relationship:
+
+$$
+v_\pi (s) = \sum_{a} \pi(a \mid s) \left[ r(s,a) + \gamma \sum_{s'} p(s' \mid s, a) v_\pi (s') \right].
+$$ {#eq-bellmans-opt}
+
+:::{.notes}
+- Note the recurrence relationship
+- This defines 1 equation for each state
+:::
+
+## Optimization is just geometric search
+## {fullscreen=true}
+
+```{julia}
+using Plots
+paraboloid(x, y) = x^2 - y^2
+surface(-10:10, -10:10, paraboloid, colorbar = :none, camera=(45,30))
+scatter!([(5, 0, 0), (0, 5, 0)], markersize = 2)
+```
+
+## {fullscreen=true}
+
+We sample this proxy function in the few spots we chose
+
+```{julia}
+surface(-10:10, -10:10, paraboloid, colorbar=:none, camera=(45,30))
+points_on_surf = [(p[1], p[2], paraboloid(p[1], p[2])) for p in [(5, 0), (0, 5)]]
+scatter!(
+    points_on_surf,
+    markersize=2
+)
+```
+
+## {fullscreen=true}
+
+By representing the function with two numbers, we simplify a very complex idea.
+
+```{julia}
+scatter(
+    [(points_on_surf[1][3], points_on_surf[2][3])],
+    xlim = (0,50),
+    ylim = (-50, 0),
+    legend = :none,
+)
+```
+
+:::{.notes}
+- This is the same principle behind the framing as a Linear Programming Problem.
+:::
+
+
+```{julia}
+#| fig-align: center
+#| output-location: slide
+surface(-10:10, -10:10, (x, y) -> x^2 - y^2, colorbar=:none)
+```
+## The leap to $\mathbb{R}^n$
+
+The Bellman optimality equation gives us an equation per state
+
+. . .
+
+Let's think of them as a linear system
+
+. . .
+
+We consider the value function as a vector,
+
+$$
+  \vec{v} = \left[ v (s_1), \dots , v (s_{|\mathscr{S}|}) \right].
+$$
+
+We say $\vec{v}(s) := v(s)$ as shorthand notation.
+
+------------
+
+Similarly, we define:
+
+$$
+\begin{align*}
+    R_\pi (s) &= \sum_{a \in \mathscr{A}} \pi(a \mid s) \, r(s,a), \\
+    P_\pi (s, s') &= \sum_{a \in \mathscr{A}} \pi(a \mid s) \sum_{s' \in \mathscr{S}} p(s' \mid s, a),
+\end{align*}
+$$
+
+by rearranging Bellman's opt. eq. (@eq-bellmans-opt) a bit.
+
+--------
+
+Now we can define the Bellman Policy Operator for a policy $\pi$.
+
+$$
+    T_\pi \vec{v} = \vec{R}_\pi + \gamma \vec{P}_\pi \vec{v},
+$$
+
+. . .
+
+Now we can study how _any_ $v$ acts on the whole set of states at the same time.
+
+. . .
+
+With this operator we can repharse the optimality condition as
+
+$$
+\begin{equation}
+    T_\pi \vec{v}_* = \vec{v}_*.
+\end{equation}
+$$
+
+----------
+
+A theorem in @puterman2014 states:
+
+> Suppose there exists a value function $\vec{v}$ such that if $\vec{v} \leq
+T_*$, then $\vec{v} \leq \vec{v}_*$.
+
+. . .
+
+What does this say about $v_*$??
+
+:::{.notes}
+The solution is a fixed point and since this is a contraction we can use Banach's Theorem!!
+:::
+
+### Solving as an LP
+
+From the previous slide, we can find the optimal value function by finding
+smaller and smaller lower bounds since $\vec{v} \leq \vec{v}_* = T_* \vec{v}_*$.
+
+-------
+
+This gives a set of linear constraints:
+
+$$
+v(s) \leq r(s, a) + \gamma \sum_{s'} p(s' \mid s, a) \, v(s') \quad \forall s \in \mathscr{S}, a \in \mathscr{A}.
+$$
+
+------
+
+Making use of the vector notation introduced earlier, we can frame this as an LP
+
+
+$$
+\begin{equation}
+\begin{array}{rl@{}ll}
+    \displaystyle \max_{\vec{v} \in \mathbb{R}^{|\mathscr{S}|}} & \vec{c}^{\top} \vec{v} \\
+    \text{Subject to} & \vec{v} \leq \vec{R}_a + \gamma \vec{P}_a \, \vec{v} & \quad \forall a \in \mathscr{A} \\
+    & \vec{v} \text{ unconstrained.} &
+\end{array}
+\end{equation}
+$$
+
+## Numerical experiments
+
+Still working on them
