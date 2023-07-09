@@ -19,11 +19,11 @@ jupyter: julia-1.9
 
 ## Miniopoly
 
-![Miniopoly Board](../img/board.svg)
+![Miniopoly Board](img/board.svg)
 
 -----
 
-![Transitions](../img/transicion-markov-three.svg)
+![Transitions](img/transicion-markov-three.svg)
 
 ### The main characters
 
