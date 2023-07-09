@@ -19,11 +19,11 @@ jupyter: julia-1.9
 
 ## Miniopoly
 
-![Miniopoly Board](img/board.svg)
+![Miniopoly Board](../img/board.svg)
 
 -----
 
-![Transitions](img/transicion-markov-three.svg)
+![Transitions](../img/transicion-markov-three.svg)
 
 ### The main characters
 
@@ -53,6 +53,8 @@ $$ {#eq-bellmans-opt}
 
 ```{julia}
 using Plots
+theme(:ggplot2)
+# plotly()
 paraboloid(x, y) = x^2 - y^2
 surface(-10:10, -10:10, paraboloid, colorbar = :none, camera=(45,30))
 scatter!([(5, 0, 0), (0, 5, 0)], markersize = 2)
