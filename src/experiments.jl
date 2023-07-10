@@ -3,6 +3,8 @@ using Distributions
 using LinearAlgebra
 using Plots
 
+theme(:ggplot2)
+
 struct MDP
     γ  # discount factor
     𝒮  # state space
@@ -291,7 +293,8 @@ function solve(M::LinearProgramFormulation, 𝒫::MDP)
     return U, ValueFunctionPolicy(𝒫, value.(U))
 end
 
-slhw = StraightLineHexWorld()
+# slhw = StraightLineHexWorld()
+slhw = HexWorld()
 v_star, πolicy = solve(LinearProgramFormulation(), slhw |> MDP)
 
 hexes = reinterpret(reshape, Int, slhw.hexes) |> transpose |> Matrix
@@ -299,6 +302,11 @@ hexes = reinterpret(reshape, Int, slhw.hexes) |> transpose |> Matrix
 scatter(eachcol(hexes)...,
     marker = :hex,
     markersize = 10,
-    zcolor = value.(v_star)
+    zcolor = value.(v_star),
+    legend = :none,
+    colorbar = true,
+    title = "Value function evaluated at each hex state"
 )
+
+savefig("docs/img/hexworld.svg")
 
